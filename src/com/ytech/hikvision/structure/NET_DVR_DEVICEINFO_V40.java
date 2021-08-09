@@ -1,4 +1,4 @@
-package com.ytech.hik.structure;
+package com.ytech.hikvision.structure;
 
 public class NET_DVR_DEVICEINFO_V40 {
     public NET_DVR_DEVICEINFO_V30 struDeviceV30 = new NET_DVR_DEVICEINFO_V30();

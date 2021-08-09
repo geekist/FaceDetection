@@ -1,15 +1,15 @@
-package com.ytech.hik.structure;
+package com.ytech.hikvision.structure;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-import com.ytech.hik.HCNetSDK;
+import com.ytech.hikvision.HCNetSDK;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static com.ytech.hik.Constant.NET_DVR_DEV_ADDRESS_MAX_LEN;
-import static com.ytech.hik.Constant.NET_DVR_LOGIN_PASSWD_MAX_LEN;
-import static com.ytech.hik.Constant.NET_DVR_LOGIN_USERNAME_MAX_LEN;
+import static com.ytech.hikvision.Constant.NET_DVR_DEV_ADDRESS_MAX_LEN;
+import static com.ytech.hikvision.Constant.NET_DVR_LOGIN_PASSWD_MAX_LEN;
+import static com.ytech.hikvision.Constant.NET_DVR_LOGIN_USERNAME_MAX_LEN;
 
 // 动态库中结构体、接口描述
 public class NET_DVR_USER_LOGIN_INFO extends Structure {

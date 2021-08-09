@@ -1,9 +1,9 @@
-package com.ytech.hik.structure;
+package com.ytech.hikvision.structure;
 
 
 import com.sun.jna.Structure;
 
-import static com.ytech.hik.Constant.SERIALNO_LEN;
+import static com.ytech.hikvision.Constant.SERIALNO_LEN;
 
 //NET_DVR_Login_V30()参数结构
 public class NET_DVR_DEVICEINFO_V30 extends Structure {

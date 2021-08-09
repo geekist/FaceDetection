@@ -1,9 +1,9 @@
-package com.ytech.hik;
+package com.ytech.hikvision;
 
 import com.sun.jna.Native;
 import com.sun.jna.win32.StdCallLibrary;
-import com.ytech.hik.structure.NET_DVR_DEVICEINFO_V40;
-import com.ytech.hik.structure.NET_DVR_USER_LOGIN_INFO;
+import com.ytech.hikvision.structure.NET_DVR_DEVICEINFO_V40;
+import com.ytech.hikvision.structure.NET_DVR_USER_LOGIN_INFO;
 
 
 public interface HCNetSDK extends StdCallLibrary {

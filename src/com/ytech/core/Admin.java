@@ -1,12 +1,12 @@
 package com.ytech.core;
 
-import com.ytech.hik.HCNetSDK;
-import com.ytech.hik.structure.NET_DVR_DEVICEINFO_V40;
-import com.ytech.hik.structure.NET_DVR_USER_LOGIN_INFO;
+import com.ytech.hikvision.HCNetSDK;
+import com.ytech.hikvision.structure.NET_DVR_DEVICEINFO_V40;
+import com.ytech.hikvision.structure.NET_DVR_USER_LOGIN_INFO;
 
-import static com.ytech.hik.Constant.NET_DVR_DEV_ADDRESS_MAX_LEN;
-import static com.ytech.hik.Constant.NET_DVR_LOGIN_PASSWD_MAX_LEN;
-import static com.ytech.hik.Constant.NET_DVR_LOGIN_USERNAME_MAX_LEN;
+import static com.ytech.hikvision.Constant.NET_DVR_DEV_ADDRESS_MAX_LEN;
+import static com.ytech.hikvision.Constant.NET_DVR_LOGIN_PASSWD_MAX_LEN;
+import static com.ytech.hikvision.Constant.NET_DVR_LOGIN_USERNAME_MAX_LEN;
 
 public class Admin {
     private static HCNetSDK hCNetSDK = HCNetSDK.INSTANCE;

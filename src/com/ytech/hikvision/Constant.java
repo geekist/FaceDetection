@@ -1,4 +1,4 @@
-package com.ytech.hik;
+package com.ytech.hikvision;
 
 public class Constant {
 

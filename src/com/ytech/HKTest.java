@@ -1,7 +1,7 @@
 package com.ytech;
 
 import com.ytech.core.Admin;
-import com.ytech.hik.HCNetSDK;
+import com.ytech.hikvision.HCNetSDK;
 
 public class HKTest {
     static HCNetSDK hCNetSDK = HCNetSDK.INSTANCE;
