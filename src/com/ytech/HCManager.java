@@ -1,6 +1,5 @@
 package com.ytech;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,8 +15,7 @@ import org.json.JSONObject;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
-
-public class HIKTest2 {
+public class HCManager {
 
     static HCNetSDK hCNetSDK = HCNetSDK.INSTANCE;
     static int lUserID = -1;//用户句柄
@@ -27,64 +25,43 @@ public class HIKTest2 {
 
     static int iCharEncodeType = 0;//设备字符集
 
-    /**
-     * @param args
-     * @throws UnsupportedEncodingException
-     * @throws InterruptedException
-     * @throws JSONException
-     */
-    public static void main(String[] args) throws UnsupportedEncodingException, InterruptedException, JSONException {
-        HIKTest2 test = new HIKTest2();
 
-        //SDK初始化
+    //SDK初始化
+    public void init() {
         hCNetSDK.NET_DVR_Init();
+    }
 
-        //SDK启用写日志
-        hCNetSDK.NET_DVR_SetLogToFile(3, "C:/JavaDemoLog", false);
+    public void setLogFolder(String folder) {
+        hCNetSDK.NET_DVR_SetLogToFile(3, folder, false);
+    }
 
-        test.Login();    //登陆
-        test.GetAbility();//获取能力集
-        test.SearchUserInfo(); //查询所有人员
-
-        String strEmployeeID = "22";//工号
-        test.DelFaceInfo(strEmployeeID);//删除人脸图片(已经存在的工号关联的人脸图片)
-        test.DelUserInfo(strEmployeeID);//删除人员信息(已经存在的工号)
-
-        test.AddUserInfo(strEmployeeID);    //添加人员，工号不能重复
-        test.ModifyUserInfo(strEmployeeID); //修改人员，根据工号修改相关人员信息，必须是已经存在的工号，工号不支持修改（需要删除重新下发）
-
-        strEmployeeID = "11";//工号
-        test.SearchFaceInfo(strEmployeeID);  //查询人脸
-
-        //举例批量下发两个工号关联的人脸图片
-        String[] strID = {"33", "44"};
-        String[] strName = {"张三", "李四"};
-        test.AddMultiUserInfo(strID, strName, 2);   //下发人脸需要先下发卡号或者使用已有卡号
-        test.AddMultiFace(strID, 2); //下发人脸
-
-        //退出程序时调用注销登录、反初始化接口
-        hCNetSDK.NET_DVR_Logout(lUserID);
+    public void cleanUp() {
         hCNetSDK.NET_DVR_Cleanup();
     }
 
-    public void Login() {
+    public void logout() {
+        hCNetSDK.NET_DVR_Logout(lUserID);
+    }
+
+    public void Login(String ip, short port, String userName, String password) {
         //注册
         HCNetSDK.NET_DVR_USER_LOGIN_INFO m_strLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();//设备登录信息
 
-        String m_sDeviceIP = "10.17.36.2";//设备ip地址
+        String m_sDeviceIP = ip;//设备ip地址
         m_strLoginInfo.sDeviceAddress = new byte[HCNetSDK.NET_DVR_DEV_ADDRESS_MAX_LEN];
         System.arraycopy(m_sDeviceIP.getBytes(), 0, m_strLoginInfo.sDeviceAddress, 0, m_sDeviceIP.length());
 
-        String m_sUsername = "admin";//设备用户名
+        String m_sUsername = userName;//设备用户名
         m_strLoginInfo.sUserName = new byte[HCNetSDK.NET_DVR_LOGIN_USERNAME_MAX_LEN];
         System.arraycopy(m_sUsername.getBytes(), 0, m_strLoginInfo.sUserName, 0, m_sUsername.length());
 
-        String m_sPassword = "hik12345";//设备密码
+        String m_sPassword = password;//设备密码
         m_strLoginInfo.sPassword = new byte[HCNetSDK.NET_DVR_LOGIN_PASSWD_MAX_LEN];
         System.arraycopy(m_sPassword.getBytes(), 0, m_strLoginInfo.sPassword, 0, m_sPassword.length());
 
-        m_strLoginInfo.wPort = 8000;
+        m_strLoginInfo.wPort = port; //端口
         m_strLoginInfo.bUseAsynLogin = false; //是否异步登录：0- 否，1- 是
+
         m_strLoginInfo.write();
 
         HCNetSDK.NET_DVR_DEVICEINFO_V40 m_strDeviceInfo = new HCNetSDK.NET_DVR_DEVICEINFO_V40();//设备信息
@@ -104,6 +81,11 @@ public class HIKTest2 {
 
     public void GetAbility() {
         String strURL = "GET /ISAPI/AccessControl/UserInfo/capabilities?format=json";
+
+        strURL = "GET /ISAPI/AccessControl/GetAcsEvent/capabilities";
+
+        strURL = "GET /ISAPI/AccessControl/AcsEventTotalNum/capabilities?format=json";
+
         HCNetSDK.BYTE_ARRAY ptrUrl = new HCNetSDK.BYTE_ARRAY(BYTE_ARRAY_LEN);
         System.arraycopy(strURL.getBytes(), 0, ptrUrl.byValue, 0, strURL.length());
         ptrUrl.write();
@@ -156,6 +138,69 @@ public class HIKTest2 {
         }
     }
 
+    //  GET /ISAPI/AccessControl/AcsEventTotalNum/capabilities?format=json
+    public void GetEventCount() throws JSONException{
+        String strURL = "POST /ISAPI/AccessControl/AcsEventTotalNum?format=json";
+        HCNetSDK.BYTE_ARRAY ptrByteArray = new HCNetSDK.BYTE_ARRAY(BYTE_ARRAY_LEN);
+        System.arraycopy(strURL.getBytes(), 0, ptrByteArray.byValue, 0, strURL.length());
+        ptrByteArray.write();
+
+
+        //组装查询的JSON报文
+        JSONObject jsonObject = new JSONObject();
+        JSONObject jsonSearchCond = new JSONObject();
+        jsonSearchCond.put("major", 0);
+        jsonObject.put("AcsEventTotalNumCond", jsonSearchCond);
+        String strInbuff = jsonObject.toString();
+        System.out.println("json报文:" + strInbuff);
+        //把string传递到Byte数组中，后续用.getPointer()方法传入指针地址中。
+        HCNetSDK.BYTE_ARRAY ptrInbuff = new HCNetSDK.BYTE_ARRAY(strInbuff.length());
+        System.arraycopy(strInbuff.getBytes(), 0, ptrInbuff.byValue, 0, strInbuff.length());
+        ptrInbuff.write();
+
+
+        HCNetSDK.NET_DVR_XML_CONFIG_INPUT struXMLInput = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT();
+        struXMLInput.read();
+        struXMLInput.dwSize = struXMLInput.size();
+        struXMLInput.lpRequestUrl = ptrByteArray.getPointer();
+        struXMLInput.dwRequestUrlLen = ptrByteArray.byValue.length;
+        struXMLInput.lpInBuffer = null;//ptrInbuff.getPointer();//ptrInBuffer.getPointer();
+        struXMLInput.dwInBufferSize = 0;//ptrInbuff.byValue.length;//ptrInBuffer.byValue.length;
+        struXMLInput.write();
+
+        HCNetSDK.BYTE_ARRAY ptrStatusByte = new HCNetSDK.BYTE_ARRAY(ISAPI_STATUS_LEN);
+        ptrStatusByte.read();
+
+        HCNetSDK.BYTE_ARRAY ptrOutByte = new HCNetSDK.BYTE_ARRAY(ISAPI_DATA_LEN);
+        ptrOutByte.read();
+
+        HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT struXMLOutput = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT();
+        struXMLOutput.read();
+        struXMLOutput.dwSize = struXMLOutput.size();
+        struXMLOutput.lpOutBuffer = ptrOutByte.getPointer();
+        struXMLOutput.dwOutBufferSize = ptrOutByte.size();
+        struXMLOutput.lpStatusBuffer = ptrStatusByte.getPointer();
+        struXMLOutput.dwStatusSize = ptrStatusByte.size();
+        struXMLOutput.write();
+
+        if (!hCNetSDK.NET_DVR_STDXMLConfig(lUserID, struXMLInput, struXMLOutput)) {
+            int iErr = hCNetSDK.NET_DVR_GetLastError();
+            System.out.println("NET_DVR_STDXMLConfig失败，错误号：" + iErr);
+            return;
+
+        } else {
+            struXMLOutput.read();
+            ptrOutByte.read();
+            ptrStatusByte.read();
+            String strOutXML = new String(ptrOutByte.byValue).trim();
+            System.out.println("获取设备能力集输出结果:" + strOutXML);
+            String strStatus = new String(ptrStatusByte.byValue).trim();
+            System.out.println("获取设备能力集返回状态：" + strStatus);
+        }
+
+    }
+
+
     public void SearchUserInfo() throws JSONException {
         HCNetSDK.BYTE_ARRAY ptrByteArray = new HCNetSDK.BYTE_ARRAY(1024);    //数组
         String strInBuffer = "POST /ISAPI/AccessControl/UserInfo/Search?format=json";
@@ -171,19 +216,21 @@ public class HIKTest2 {
             JSONObject jsonObject = new JSONObject();
             JSONObject jsonSearchCond = new JSONObject();
 
-            //如果需要查询指定的工号人员信息，把下面注释的内容去除掉即可
-//			JSONArray EmployeeNoList = new JSONArray();
-//			JSONObject employeeNo1 = new JSONObject();
-//			employeeNo1.put("employeeNo", "1");
-//			JSONObject employeeNo2 = new JSONObject();
-//			employeeNo2.put("employeeNo", "2");
-//			EmployeeNoList.put(employeeNo1);
-//			EmployeeNoList.put(employeeNo2);
-//			jsonSearchCond.put("EmployeeNoList", EmployeeNoList);
-
             jsonSearchCond.put("searchID", "123e4567-e89b-12d3-a456-426655440000");
             jsonSearchCond.put("searchResultPosition", 0);
             jsonSearchCond.put("maxResults", 10);
+
+//            //如果需要查询指定的工号人员信息，把下面注释的内容去除掉即可
+//            JSONArray EmployeeNoList = new JSONArray();
+//            JSONObject employeeNo1 = new JSONObject();
+//            employeeNo1.put("employeeNo", "1");
+//            JSONObject employeeNo2 = new JSONObject();
+//            employeeNo2.put("employeeNo", "2");
+//            EmployeeNoList.put(employeeNo1);
+//           // EmployeeNoList.put(employeeNo2);
+//            jsonSearchCond.put("EmployeeNoList", EmployeeNoList);
+
+
             jsonObject.put("UserInfoSearchCond", jsonSearchCond);
 
             String strInbuff = jsonObject.toString();
@@ -237,9 +284,60 @@ public class HIKTest2 {
                 lHandler = -1;
             }
         }
-
-
     }
+
+    /**
+     * {
+     * "UserInfoCount":	{
+     * "userNumber":	5
+     * }
+     * }
+     */
+    public void GetUserInfoCount() {
+        String strURL = "GET /ISAPI/AccessControl/UserInfo/Count?format=json";
+        HCNetSDK.BYTE_ARRAY ptrUrl = new HCNetSDK.BYTE_ARRAY(BYTE_ARRAY_LEN);
+        System.arraycopy(strURL.getBytes(), 0, ptrUrl.byValue, 0, strURL.length());
+        ptrUrl.write();
+
+        HCNetSDK.NET_DVR_XML_CONFIG_INPUT struXMLInput = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT();
+        struXMLInput.read();
+        struXMLInput.dwSize = struXMLInput.size();
+        struXMLInput.lpRequestUrl = ptrUrl.getPointer();
+        struXMLInput.dwRequestUrlLen = ptrUrl.byValue.length;
+        struXMLInput.lpInBuffer = null;//ptrInBuffer.getPointer();
+        struXMLInput.dwInBufferSize = 0;//ptrInBuffer.byValue.length;
+        struXMLInput.write();
+
+        HCNetSDK.BYTE_ARRAY ptrStatusByte = new HCNetSDK.BYTE_ARRAY(ISAPI_STATUS_LEN);
+        ptrStatusByte.read();
+
+        HCNetSDK.BYTE_ARRAY ptrOutByte = new HCNetSDK.BYTE_ARRAY(ISAPI_DATA_LEN);
+        ptrOutByte.read();
+
+        HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT struXMLOutput = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT();
+        struXMLOutput.read();
+        struXMLOutput.dwSize = struXMLOutput.size();
+        struXMLOutput.lpOutBuffer = ptrOutByte.getPointer();
+        struXMLOutput.dwOutBufferSize = ptrOutByte.size();
+        struXMLOutput.lpStatusBuffer = ptrStatusByte.getPointer();
+        struXMLOutput.dwStatusSize = ptrStatusByte.size();
+        struXMLOutput.write();
+
+        if (!hCNetSDK.NET_DVR_STDXMLConfig(lUserID, struXMLInput, struXMLOutput)) {
+            int iError = hCNetSDK.NET_DVR_GetLastError();
+            System.out.println("NET_DVR_STDXMLConfig失败，错误号：" + iError);
+            return;
+        } else {
+            struXMLOutput.read();
+            ptrOutByte.read();
+            ptrStatusByte.read();
+            String strOutXML = new String(ptrOutByte.byValue).trim();
+            System.out.println("人员总数:" + strOutXML);
+            String strStatus = new String(ptrStatusByte.byValue).trim();
+            System.out.println("获取设备能力集返回状态：" + strStatus);
+        }
+    }
+
 
     public void AddUserInfo(String strEmployeeID) throws UnsupportedEncodingException, InterruptedException, JSONException {
         HCNetSDK.BYTE_ARRAY ptrByteArray = new HCNetSDK.BYTE_ARRAY(1024);    //数组
@@ -254,7 +352,7 @@ public class HIKTest2 {
         } else {
             System.out.println("AddUserInfo NET_DVR_StartRemoteConfig 成功!");
 
-            byte[] Name = "张三".getBytes("utf-8"); //根据iCharEncodeType判断，如果iCharEncodeType返回6，则是UTF-8编码。
+            byte[] Name = "张博".getBytes("utf-8"); //根据iCharEncodeType判断，如果iCharEncodeType返回6，则是UTF-8编码。
             //如果是0或者1或者2，则是GBK编码
 
             //将中文字符编码之后用数组拷贝的方式，避免因为编码导致的长度问题
@@ -703,6 +801,123 @@ public class HIKTest2 {
                 } else {
                     System.out.println("下发人脸识别，其他状态：" + dwState);
                 }
+            }
+
+            if (!hCNetSDK.NET_DVR_StopRemoteConfig(lHandler)) {
+                System.out.println("NET_DVR_StopRemoteConfig接口调用失败，错误码：" + hCNetSDK.NET_DVR_GetLastError());
+            } else {
+                System.out.println("NET_DVR_StopRemoteConfig接口成功");
+            }
+        }
+    }
+
+    public void AddFaceInfo(String strFPID) throws JSONException, InterruptedException {
+        HCNetSDK.BYTE_ARRAY ptrByteArray = new HCNetSDK.BYTE_ARRAY(1024);    //数组
+        String strInBuffer = "POST /ISAPI/Intelligent/FDLib/FaceDataRecord?format=json ";
+        System.arraycopy(strInBuffer.getBytes(), 0, ptrByteArray.byValue, 0, strInBuffer.length());//字符串拷贝到数组中
+        ptrByteArray.write();
+
+        int lHandler = hCNetSDK.NET_DVR_StartRemoteConfig(lUserID, 2551/*NET_DVR_FACE_DATA_RECORD*/, ptrByteArray.getPointer(), strInBuffer.length(), null, null);
+        if (lHandler < 0) {
+            System.out.println("Addface NET_DVR_StartRemoteConfig 失败,错误码为" + hCNetSDK.NET_DVR_GetLastError());
+            return;
+        } else {
+            System.out.println("Addface NET_DVR_StartRemoteConfig 成功!");
+
+            HCNetSDK.NET_DVR_JSON_DATA_CFG struAddFaceDataCfg = new HCNetSDK.NET_DVR_JSON_DATA_CFG();
+            //下发的人脸图片
+            String strFilePath = System.getProperty("user.dir") + "\\lib\\pic\\qh.jpg";
+
+            struAddFaceDataCfg.read();
+
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("faceLibType", "blackFD");
+            jsonObject.put("FDID", "1");
+            jsonObject.put("FPID", strFPID);//人脸下发关联的工号
+
+            String strJsonData = jsonObject.toString();
+            System.out.println("下发人脸的json报文:" + strJsonData);
+
+            System.arraycopy(strJsonData.getBytes(), 0, ptrByteArray.byValue, 0, strJsonData.length());//字符串拷贝到数组中
+            ptrByteArray.write();
+
+            struAddFaceDataCfg.dwSize = struAddFaceDataCfg.size();
+            struAddFaceDataCfg.lpJsonData = ptrByteArray.getPointer();
+            struAddFaceDataCfg.dwJsonDataSize = strJsonData.length();
+
+            /*****************************************
+             * 从本地文件里面读取JPEG图片二进制数据
+             *****************************************/
+            FileInputStream picfile = null;
+            int picdataLength = 0;
+            try {
+                picfile = new FileInputStream(new File(strFilePath));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                picdataLength = picfile.available();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            if (picdataLength < 0) {
+                System.out.println("input file dataSize < 0");
+                return;
+            }
+
+            HCNetSDK.BYTE_ARRAY ptrpicByte = new HCNetSDK.BYTE_ARRAY(picdataLength);
+            try {
+                picfile.read(ptrpicByte.byValue);
+                picfile.close();
+            } catch (IOException e2) {
+                e2.printStackTrace();
+            }
+            ptrpicByte.write();
+            struAddFaceDataCfg.dwPicDataSize = picdataLength;
+            struAddFaceDataCfg.lpPicData = ptrpicByte.getPointer();
+            struAddFaceDataCfg.write();
+
+            HCNetSDK.BYTE_ARRAY ptrOutuff = new HCNetSDK.BYTE_ARRAY(1024);
+            IntByReference pInt = new IntByReference(0);
+
+            dwState = hCNetSDK.NET_DVR_SendWithRecvRemoteConfig(lHandler, struAddFaceDataCfg.getPointer(), struAddFaceDataCfg.dwSize, ptrOutuff.getPointer(), ptrOutuff.size(), pInt);
+            //读取返回的json并解析
+            ptrOutuff.read();
+            String strResult = new String(ptrOutuff.byValue).trim();
+            System.out.println("dwState:" + dwState + ",strResult:" + strResult);
+
+            if (strResult.isEmpty()) {
+                return;
+            }
+            JSONObject jsonResult = new JSONObject(strResult);
+            int statusCode = jsonResult.getInt("statusCode");
+            //String statusString = jsonResult.getString("statusString");
+
+            if (dwState == -1) {
+                System.out.println("NET_DVR_SendWithRecvRemoteConfig接口调用失败，错误码：" + hCNetSDK.NET_DVR_GetLastError());
+            } else if (dwState == HCNetSDK.NET_SDK_CONFIG_STATUS_FAILED) {
+                System.out.println("下发人脸失败, json retun:" + jsonResult.toString());
+                //可以继续下发下一个
+            } else if (dwState == HCNetSDK.NET_SDK_CONFIG_STATUS_EXCEPTION) {
+                System.out.println("下发人脸异常, json retun:" + jsonResult.toString());
+                //异常是长连接异常，不能继续下发后面的数据，需要重新建立长连接
+            } else if (dwState == HCNetSDK.NET_SDK_CONFIG_STATUS_SUCCESS) {
+                //返回NET_SDK_CONFIG_STATUS_SUCCESS代表流程走通了，但并不代表下发成功，
+                // 比如人脸图片不符合设备规范等原因，所以需要解析Json报文
+                if (statusCode != 1) {
+                    System.out.println("下发人脸成功,但是有异常情况:" + jsonResult.toString());
+                } else {
+                    //人脸数据下发成功
+                    System.out.println("下发人脸成功,  json retun:" + jsonResult.toString());
+                }
+            } else if (dwState == HCNetSDK.NET_SDK_CONFIG_STATUS_FINISH) {
+                //下发人脸时：dwState其实不会走到这里，因为设备不知道我们会下发多少个人，所以长连接需要我们主动关闭
+                System.out.println("下发人脸完成");
+            } else {
+                System.out.println("下发人脸识别，其他状态：" + dwState);
+
+                System.out.println("下发人脸识别，其他状态：" + dwState);
             }
 
             if (!hCNetSDK.NET_DVR_StopRemoteConfig(lHandler)) {
